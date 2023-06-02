@@ -47,6 +47,10 @@ class OCOPSpider(scrapy.Spider):
             _source_link,
         )
 
+        blog["image_urls"] = response.selector.xpath(
+            r'//div[@class="__MASTERCMS_CONTENT fw f1 mb clearfix"]//img/@src'
+        ).getall()
+
         yield blog
 
     def parse(self, response: HtmlResponse):

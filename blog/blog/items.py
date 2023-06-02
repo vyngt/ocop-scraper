@@ -11,3 +11,5 @@ class BlogItem(scrapy.Item):
     content = scrapy.Field()
     datetime = scrapy.Field()
     source = scrapy.Field()
+
+    image_urls = scrapy.Field()

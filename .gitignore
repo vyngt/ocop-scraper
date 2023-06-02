@@ -1,2 +1,12 @@
 __pycache__
 .env
+
+build/
+dbs/
+eggs/
+logs/
+project.egg-info/
+store/
+setup.py
+
+*.db

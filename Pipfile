@@ -7,6 +7,10 @@ name = "pypi"
 scrapy = "*"
 requests = "*"
 ipython = "*"
+scrapyd = "*"
+scrapyd-client = "*"
+pywin32 = "*"
+pillow = "*"
 
 [dev-packages]
 

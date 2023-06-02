@@ -6,11 +6,14 @@
 #     https://docs.scrapy.org/en/latest/topics/settings.html
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
+import os
 
 BOT_NAME = "blog"
 
 SPIDER_MODULES = ["blog.spiders"]
 NEWSPIDER_MODULE = "blog.spiders"
+
+LOG_LEVEL = "INFO"
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
@@ -63,6 +66,8 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
+    "blog.pipelines.DuplicateFilterPipeline": 1,
+    # "scrapy.pipelines.images.ImagesPipeline": 100,
     "blog.pipelines.BlogPipeline": 300,
 }
 
@@ -91,3 +96,12 @@ ITEM_PIPELINES = {
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 FEED_EXPORT_ENCODING = "utf-8"
+
+
+# OCOP - ODOO
+OCOP_BASE_URL = os.environ.get("OCOP_BASE_URL", "http://localhost:8069")
+OCOP_AUTH_ENDPOINT = os.environ.get("OCOP_AUTH_ENDPOINT", "/web/session/authenticate")
+OCOP_AUTH_USER = os.environ.get("OCOP_AUTH_USER", "")
+OCOP_AUTH_PASSWORD = os.environ.get("OCOP_AUTH_PASSWORD", "")
+OCOP_AUTH_DB = os.environ.get("OCOP_AUTH_DB", "")
+OCOP_BLOG_ENDPOINT = os.environ.get("OCOP_BLOG_ENDPOINT", "/api/ocop/blog")

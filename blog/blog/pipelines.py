@@ -4,43 +4,100 @@
 # See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 
 
-import os
+import sqlite3
+from hashlib import sha256
 from random import randint
 
 import requests
 
 # useful for handling different item types with a single interface
 from itemadapter import ItemAdapter  # type: ignore
+from scrapy.exceptions import DropItem
 
-BASE_URL = os.environ.get("BASE_URL", "http://localhost:8069")
 
-AUTH_ENDPOINT = os.environ.get("AUTH_ENDPOINT", "/web/session/authenticate")
-AUTH_USER = os.environ.get("AUTH_USER", "")
-AUTH_PASSWORD = os.environ.get("AUTH_PASSWORD", "")
-AUTH_DB = os.environ.get("AUTH_DB", "")
+class DuplicateFilterPipeline:
+    def __init__(self) -> None:
+        self.setup()
 
-BLOG_ENDPOINT = os.environ.get("BLOG_ENDPOINT", "/api/ocop/blog")
+    def setup(self) -> None:
+        self.con = sqlite3.connect("scraped.db")
+        self.cur = self.con.cursor()
+
+        self.cur.execute(
+            """
+        CREATE TABLE IF NOT EXISTS scraped(
+            name TEXT,
+            source TEXT
+        )
+        """
+        )
+
+    def insert_record(self, name: str, source: str):
+        self.cur.execute(
+            """
+            INSERT INTO scraped (name, source) VALUES (?, ?)
+            """,
+            (
+                name,
+                source,
+            ),
+        )
+        self.con.commit()
+
+    def is_record_exists(self, name: str) -> bool:
+        self.cur.execute("SELECT * FROM scraped where name = ?", (name,))
+        result = self.cur.fetchone()
+        return True if result else False
+
+    def process_item(self, item, spider):
+        name: str
+        source: str
+        name, source = map(ItemAdapter(item).get, ("name", "source"))
+
+        _name = sha256(name.encode()).hexdigest()
+
+        if self.is_record_exists(_name):
+            raise DropItem(f"Item name = '{name}' already exists")
+        else:
+            self.insert_record(_name, source)
+            return item
 
 
 class BlogPipeline:
     headers = {"Content-type": "application/json"}
 
-    def __init__(self) -> None:
-        self.setup_url()
+    def __init__(self, blog_url: str, auth_url: str, credentials: dict) -> None:
+        self.blog_url = blog_url
+        self.auth_url = auth_url
+        self.credentials = credentials
         self.login()
 
-    def setup_url(self) -> None:
-        self.blog_url = BASE_URL + BLOG_ENDPOINT
-        self.auth_url = BASE_URL + AUTH_ENDPOINT
+    @classmethod
+    def from_crawler(cls, crawler):
+        base_url = crawler.settings.get("OCOP_BASE_URL")
+        blog_endpoint = crawler.settings.get("OCOP_BLOG_ENDPOINT")
+        auth_endpoint = crawler.settings.get("OCOP_AUTH_ENDPOINT")
+
+        db = crawler.settings.get("OCOP_AUTH_DB")
+        login = crawler.settings.get("OCOP_AUTH_USER")
+        password = crawler.settings.get("OCOP_AUTH_PASSWORD")
+
+        credentials = {
+            "login": login,
+            "password": password,
+            "db": db,
+        }
+
+        return cls(
+            blog_url=base_url + blog_endpoint,
+            auth_url=base_url + auth_endpoint,
+            credentials=credentials,
+        )
 
     def login(self) -> None:
         payload = {
             "jsonrpc": "2.0",
-            "params": {
-                "login": AUTH_USER,
-                "password": AUTH_PASSWORD,
-                "db": AUTH_DB,
-            },
+            "params": self.credentials,
             "id": randint(0, 1000000),
         }
 
