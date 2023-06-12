@@ -37,7 +37,7 @@ class OCOPSpider(scrapy.Spider):
         blog["name"] = response.selector.xpath(name).get()
 
         _source_link = (
-            '<p style="text-align: right;">Nguồn: <a href="%s">%s</a></p>'
+            '<p style="text-align: right;">Nguồn bài viết: <a href="%s">%s</a></p>'
             % (response.url, response.url)
         )
 
